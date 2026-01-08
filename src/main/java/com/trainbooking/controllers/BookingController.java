@@ -19,13 +19,29 @@ public class BookingController {
     }
 
     @GetMapping("/booking")
-    public String bookingPage() {
+    public String bookingPage(@RequestParam(required = false) String userID, Model model) {
+        if (userID != null) {
+            model.addAttribute("userID", userID);
+        }
         return "booking";
     }
 
     @GetMapping("/logout")
     public String logout() {
         return "redirect:/";
+    }
+
+    @GetMapping("/payment")
+    public String paymentPage(@RequestParam String bookingID,
+                              @RequestParam String userID,
+                              Model model) {
+        Booking booking = bookingComponent.getLatestBooking();
+        if (booking != null) {
+            model.addAttribute("bookingID", bookingID);
+            model.addAttribute("paymentDue", booking.getTotalCost());
+        }
+        model.addAttribute("userID", userID);
+        return "payment";
     }
 
     @PostMapping("/book")
@@ -35,20 +51,28 @@ public class BookingController {
                        @RequestParam int passengers,
                        @RequestParam String date,
                        Model model) {
-        LocalDateTime departure = LocalDate.parse(date).atStartOfDay();
+
+        // Validate date is in the future
+        LocalDate selectedDate = LocalDate.parse(date);
+        LocalDate today = LocalDate.now();
+
+        if (selectedDate.isBefore(today) || selectedDate.isEqual(today)) {
+            model.addAttribute("message", "Error: Departure date must be in the future!");
+            model.addAttribute("userID", userID);
+            return "booking";
+        }
+
+        LocalDateTime departure = selectedDate.atStartOfDay();
         boolean success = bookingComponent.createBooking(userID, origin, destination, departure, passengers);
         if (success) {
             Booking booking = bookingComponent.getLatestBooking();
-            double estimatedCost = bookingComponent.calculateTotalCost(origin, destination, passengers);
-            model.addAttribute("message", "Booking created! Please proceed to payment.");
-            model.addAttribute("bookingID", booking.getBookingID());
-            model.addAttribute("estimatedCost", estimatedCost);
-            model.addAttribute("paymentDue", booking.getTotalCost());
+            // Redirect to payment page
+            return "redirect:/payment?bookingID=" + booking.getBookingID() + "&userID=" + userID;
         } else {
             model.addAttribute("message", "Booking failed. Check your inputs.");
+            model.addAttribute("userID", userID);
+            return "booking";
         }
-        model.addAttribute("userID", userID);
-        return "booking";
     }
 
     @PostMapping("/pay")
@@ -62,6 +86,7 @@ public class BookingController {
             model.addAttribute("message", "Payment failed. Please try again.");
         }
         model.addAttribute("userID", userID);
-        return "booking";
+        // Redirect back to booking page with message
+        return "redirect:/booking?userID=" + userID;
     }
 }

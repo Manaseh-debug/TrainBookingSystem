@@ -1,9 +1,190 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.w3.org/1999/xhtml">
 <head>
-    <title>Booking</title>
+    <title>Book Your Train</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-orange: #FF6B35;
+            --primary-dark: #E85A2B;
+            --accent-yellow: #F7B731;
+            --success-green: #26A69A;
+            --text-dark: #2C3E50;
+        }
+        
+        body {
+            background: url('https://images.pexels.com/photos/1181202/pexels-photo-1181202.jpeg?auto=compress&cs=tinysrgb&w=1920') center/cover no-repeat fixed;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(248, 249, 250, 0.92);
+            z-index: -1;
+        }
+        
+        .navbar-custom {
+            background: linear-gradient(135deg, var(--text-dark) 0%, #34495e 100%);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-custom {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        
+        .card-header-custom {
+            background: linear-gradient(135deg, var(--primary-orange) 0%, var(--accent-yellow) 100%);
+            color: white;
+            border: none;
+            padding: 1.5rem;
+        }
+        
+        .btn-primary-custom {
+            background: linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-dark) 100%);
+            border: none;
+            color: white;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .btn-primary-custom:hover {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-orange) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+            color: white;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-orange);
+            box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.25);
+        }
+        
+        .alert-success-custom {
+            background: linear-gradient(135deg, rgba(38, 166, 154, 0.1) 0%, rgba(38, 166, 154, 0.05) 100%);
+            border-left: 4px solid var(--success-green);
+            border-radius: 10px;
+        }
+        
+        .cost-display {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(247, 183, 49, 0.1) 100%);
+            border-left: 4px solid var(--primary-orange);
+        }
+    </style>
     <script>
+        const locations = ["Nairobi", "Nakuru", "Kericho", "Kisumu", "Kakamega"];
+
+        function updateDestinationOptions() {
+            const originSelect = document.getElementById("origin");
+            const destinationSelect = document.getElementById("destination");
+            const selectedOrigin = originSelect.value;
+
+            // Save current destination selection
+            const currentDestination = destinationSelect.value;
+
+            // Clear destination options
+            destinationSelect.innerHTML = "";
+
+            // Add all locations except the selected origin
+            locations.forEach(location => {
+                if (location !== selectedOrigin) {
+                    const option = document.createElement("option");
+                    option.value = location;
+                    option.textContent = location;
+                    destinationSelect.appendChild(option);
+                }
+            });
+
+            // Try to restore the previous destination if it's still valid
+            if (locations.includes(currentDestination) && currentDestination !== selectedOrigin) {
+                destinationSelect.value = currentDestination;
+            }
+
+            calculateCost();
+        }
+
+        function updateOriginOptions() {
+            const originSelect = document.getElementById("origin");
+            const destinationSelect = document.getElementById("destination");
+            const selectedDestination = destinationSelect.value;
+
+            // Save current origin selection
+            const currentOrigin = originSelect.value;
+
+            // Clear origin options
+            originSelect.innerHTML = "";
+
+            // Add all locations except the selected destination
+            locations.forEach(location => {
+                if (location !== selectedDestination) {
+                    const option = document.createElement("option");
+                    option.value = location;
+                    option.textContent = location;
+                    originSelect.appendChild(option);
+                }
+            });
+
+            // Try to restore the previous origin if it's still valid
+            if (locations.includes(currentOrigin) && currentOrigin !== selectedDestination) {
+                originSelect.value = currentOrigin;
+            }
+
+            calculateCost();
+        }
+
+        // Set minimum date to tomorrow
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            document.querySelector('input[name="date"]').setAttribute('min', tomorrowStr);
+
+            // Initialize dropdowns
+            updateDestinationOptions();
+        });
+
+        function validateDate() {
+            const dateInput = document.querySelector('input[name="date"]');
+            const dateError = document.getElementById('dateError');
+            const selectedDate = new Date(dateInput.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (!dateInput.value) {
+                dateError.style.display = 'none';
+                return false;
+            }
+
+            if (selectedDate <= today) {
+                dateError.style.display = 'block';
+                dateInput.classList.add('is-invalid');
+                return false;
+            } else {
+                dateError.style.display = 'none';
+                dateInput.classList.remove('is-invalid');
+                return true;
+            }
+        }
+
+        function validateForm(event) {
+            if (!validateDate()) {
+                event.preventDefault();
+                const dateInput = document.querySelector('input[name="date"]');
+                dateInput.focus();
+                return false;
+            }
+            return true;
+        }
+
         function calculateCost() {
             const fares = {
                 "Nairobi-Nakuru": 800, "Nairobi-Kericho": 1200, "Nairobi-Kisumu": 1500, "Nairobi-Kakamega": 1800,
@@ -22,69 +203,62 @@
         }
     </script>
 </head>
-<body class="bg-light">
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom mb-4">
     <div class="container">
-        <a class="navbar-brand" href="/booking">Train Booking</a>
+        <a class="navbar-brand fw-bold" href="/booking">
+            <i class="bi bi-train-front me-2"></i>Train Booking
+        </a>
         <div class="navbar-nav ms-auto">
-            <span class="navbar-text text-white me-3">Welcome, User!</span>
-            <a class="btn btn-outline-light btn-sm" href="/logout">Logout</a>
+            <span class="navbar-text text-white me-3">
+                <i class="bi bi-person-circle me-1"></i>Welcome, User!
+            </span>
+            <a class="btn btn-outline-light btn-sm" href="/logout">
+                <i class="bi bi-box-arrow-right me-1"></i>Logout
+            </a>
         </div>
     </div>
 </nav>
 <div class="container mt-5">
     <div th:if="${bookingID != null and paymentDue != null}">
-        <div class="alert alert-info">
-            <h4 class="alert-heading">Booking Created Successfully!</h4>
-            <p>Booking ID: <strong>${bookingID}</strong></p>
-            <p>Amount Due: <strong>KES ${paymentDue}</strong></p>
+        <div class="alert alert-success-custom border-0 shadow-sm">
+            <h4 class="alert-heading">
+                <i class="bi bi-check-circle-fill text-success me-2"></i>Booking Created Successfully!
+            </h4>
+            <p class="mb-1">Booking ID: <strong class="text-success">$465590</strong></p>
+            <p class="mb-3">Amount Due: <strong class="text-success">KES 1600</strong></p>
             <hr>
-            <form method="post" action="/pay">
-                <input type="hidden" name="bookingID" value="${bookingID}">
-                <input type="hidden" name="userID" value="${userID}">
-                <h5 class="mb-3">Enter Payment Details</h5>
-                <div class="mb-3">
-                    <label>Card Number</label>
-                    <input type="text" class="form-control" placeholder="1234-5678-9012-3456" required>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label>Expiry Date</label>
-                        <input type="text" class="form-control" placeholder="MM/YY" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label>CVV</label>
-                        <input type="text" class="form-control" placeholder="123" required>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-success w-100">Pay Now - KES ${paymentDue}</button>
-            </form>
+            <div class="mt-3">
+                <a th:href="@{/payment(bookingID=${bookingID}, userID=${userID})}" class="btn btn-primary-custom btn-lg w-100">
+                    <i class="bi bi-credit-card me-2"></i>Proceed to Payment
+                </a>
+            </div>
         </div>
     </div>
 
     <div th:if="${message}">
-        <div class="alert ${message.contains('success') ? 'alert-success' : 'alert-warning'}">
+        <div class="alert ${message.contains('success') ? 'alert-success-custom' : 'alert-warning'} border-0">
             ${message}
         </div>
     </div>
 
-    <div class="card shadow">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">Book Your Train</h4>
+    <div class="card card-custom">
+        <div class="card-header card-header-custom">
+            <h4 class="mb-0"><i class="bi bi-ticket-perforated me-2"></i>Book Your Train</h4>
         </div>
         <div class="card-body">
-            <form method="post" action="/book">
-                <input type="hidden" name="userID" value="${userID}">
+            <form method="post" action="/book" onsubmit="return validateForm(event)">
+                <input type="hidden" name="userID" th:value="${userID}">
                 <div class="mb-3">
                     <label class="form-label">Origin</label>
-                    <select id="origin" name="origin" class="form-select" onchange="calculateCost()">
+                    <select id="origin" name="origin" class="form-select" onchange="updateDestinationOptions()">
                         <option>Nairobi</option><option>Nakuru</option><option>Kericho</option>
                         <option>Kisumu</option><option>Kakamega</option>
                     </select>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Destination</label>
-                    <select id="destination" name="destination" class="form-select" onchange="calculateCost()">
+                    <select id="destination" name="destination" class="form-select" onchange="updateOriginOptions()">
                         <option>Nairobi</option><option>Nakuru</option><option>Kericho</option>
                         <option>Kisumu</option><option>Kakamega</option>
                     </select>
@@ -95,13 +269,20 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Departure Date</label>
-                    <input type="date" name="date" class="form-control" required>
+                    <input type="date" name="date" class="form-control" required onchange="validateDate()">
+                    <div id="dateError" class="invalid-feedback d-block" style="display: none;">
+                        <i class="bi bi-exclamation-circle"></i> Departure date must be in the future!
+                    </div>
                 </div>
-                <div class="mb-3 p-3 bg-light rounded">
-                    <label class="form-label fw-bold">Estimated Total Cost:</label>
-                    <div id="totalCost" class="display-6 text-primary">KES 0</div>
+                <div class="mb-3 p-3 cost-display rounded">
+                    <label class="form-label fw-bold">
+                        <i class="bi bi-currency-exchange me-2"></i>Estimated Total Cost:
+                    </label>
+                    <div id="totalCost" class="display-6 fw-bold" style="color: var(--primary-orange);">KES 0</div>
                 </div>
-                <button type="submit" class="btn btn-primary w-100 btn-lg">Create Booking</button>
+                <button type="submit" class="btn btn-primary-custom w-100 btn-lg">
+                    <i class="bi bi-check-circle me-2"></i>Create Booking
+                </button>
             </form>
         </div>
     </div>

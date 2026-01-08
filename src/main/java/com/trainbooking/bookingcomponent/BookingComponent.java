@@ -102,7 +102,7 @@ public class BookingComponent {
     }
 
     private String generateBookingID() {
-        return UUID.randomUUID().toString();
+        return String.valueOf((int)(Math.random() * 1000000));
     }
 
     // ================= PUBLIC METHOD FOR UI =================

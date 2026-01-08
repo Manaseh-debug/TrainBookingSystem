@@ -8,7 +8,7 @@ public class AuthServiceImpl implements IAuthService {
 
     @Override
     public boolean isValidUser(String userID) {
-        // Simple validation (demo purpose)
+
         return userID != null && !userID.isEmpty();
     }
 }
